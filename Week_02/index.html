@@ -1,0 +1,130 @@
+<!--
+ * @Author: wyb
+ * @Description:  寻路算法
+ * @FilePath: /Frontend-09-Template/Week_02/index.html
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <style>
+      #app {
+        width: 700px;
+      }
+
+      .cell {
+        width: 6px;
+        height: 6px;
+        line-height: 7px;
+        display: inline-block;
+        background-color: gray;
+        border-bottom: 1px solid white;
+        border-right: 1px solid white;
+        vertical-align: middle;
+      }
+    </style>
+    <div id="app"></div>
+    <button class="submit-btn" onclick="submit()">保存</button>
+    <button class="clear-btn" onclick="reset()">清除</button>
+    <script>
+      let map = localStorage.getItem("map")
+        ? JSON.parse(localStorage.getItem("map"))
+        : Array(10000).fill(0);
+      let appEl = document.getElementById("app");
+
+      function reset() {
+        console.log("111111111111");
+        map = Array(10000).fill(0);
+        show();
+      }
+
+      function show() {
+        appEl.innerHTML = "";
+        for (let y = 0; y < 100; y++) {
+          for (let x = 0; x < 100; x++) {
+            let cell = document.createElement("div");
+            cell.classList.add("cell");
+            if (map[100 * y + x] === 1) cell.style.backgroundColor = "black";
+            cell.addEventListener("mousemove", () => {
+              if (mousedown) {
+                if (clear) {
+                  cell.style.backgroundColor = "";
+                  map[100 * y + x] = 0;
+                } else {
+                  cell.style.backgroundColor = "black";
+                  map[100 * y + x] = 1;
+                }
+              }
+            });
+            appEl.appendChild(cell);
+          }
+        }
+      }
+      let mousedown = false;
+      let clear = false;
+      document.addEventListener("mousedown", (e) => {
+        mousedown = true;
+        clear = e.which === 3;
+      });
+      document.addEventListener("mouseup", () => (mousedown = false));
+      document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      function submit() {
+        localStorage.setItem("map", JSON.stringify(map));
+      }
+
+      function sleep(t) {
+        return new Promise((resolve) => {
+          setTimeout(resolve, t);
+        });
+      }
+      async function findPath(map, start, end) {
+        let queue = [start];
+        let tables = Object.create(map);
+
+        async function insert(x, y, pre) {
+          if (x < 0 || x >= 100 || y < 0 || y >= 100) return;
+          if (tables[y * 100 + x]) return;
+          await sleep(1);
+          appEl.children[y * 100 + x].style.backgroundColor = "lightgreen";
+          tables[y * 100 + x] = pre;
+          // map[y * 100 + x] = 2;
+          queue.push([x, y]);
+        }
+
+        while (queue.length) {
+          let [x, y] = queue.shift();
+          if (x === end[0] && y === end[1]) {
+            let path = [];
+            while (x != start[0] || y != start[1]) {
+              path.push(map[y * 100 + x]);
+              // const arr = tables[y * 100 + x]
+              // x = arr[0]
+              // y = arr[1]
+              [x, y] = tables[y * 100 + x];
+              await sleep(30);
+              appEl.children[y * 100 + x].style.backgroundColor = "purple";
+            }
+            return path;
+          }
+          await insert(x - 1, y, [x, y]);
+          await insert(x, y - 1, [x, y]);
+          await insert(x + 1, y, [x, y]);
+          await insert(x, y + 1, [x, y]);
+
+          await insert(x - 1, y - 1, [x, y]);
+          await insert(x + 1, y - 1, [x, y]);
+          await insert(x - 1, y + 1, [x, y]);
+          await insert(x + 1, y + 1, [x, y]);
+        }
+        return null;
+      }
+      show();
+    </script>
+  </body>
+</html>
