@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        const regexp = /([0-9\.]+)|([ \t]+)|([\r\n]+)|(\*)|(\/)|(\+)|(\-)/g
+        
+        const dictionary = ['Number', 'Whitespace', 'LineTerminator', '*', '/', '+', '-'];
+
+        const mulExps = ['*', '/'];
+        const mulExpStr = 'MultiplicativeExpression';
+        const addExps = ['+', '-']
+        const addExpStr = 'additiveExpression'
+        const expStr = 'Expression'
+        const eof = "EOF"
+
+        let source = []
+
+        function* tokenize(source) {
+            var result = null;
+            var lastIndex = 0;
+            while(true) {
+                result = regexp.exec(source);
+                lastIndex = regexp.lastIndex
+                if(!result) break;
+                
+                if(regexp.lastIndex - lastIndex > result[0].length) break;
+
+                let token = {
+                    type: null,
+                    value: null
+                }
+                // 获取类型
+                for(let i = 1; i <= dictionary.length; i++) {
+                    if(result[i]) {
+                        token.type = dictionary[i - 1];
+                    }
+                }
+                token.value = result[0]
+                yield token;
+            }
+            yield {
+                type: eof
+            }
+        }
+
+        function MultiplicativeExpression(source) {
+            if(source[0].type === dictionary[0]) {
+                let node = {
+                    type: mulExpStr,
+                    children: [source[0]]
+                }
+                source[0] = node
+                return MultiplicativeExpression(source)
+            }
+
+            if(source[0].type === mulExpStr && source[1] && mulExps.includes(source[1].type)) {
+                let node = {
+                    type: mulExpStr,
+                    operator: source[1].type,
+                    children: []
+                }
+                node.children.push(source.shift());
+                node.children.push(source.shift());
+                node.children.push(source.shift());
+                source.unshift(node);
+                return MultiplicativeExpression(source)
+            }
+
+            if(source[0].type === mulExpStr) {
+                return source[0]
+            }
+            return MultiplicativeExpression(source)
+        }
+
+        function Expression(tokens) {
+            if(source[0].type === addExpStr && source[1] && source[1].type === eof) {
+                let node = {
+                    type: expStr,
+                    children: [source.shift(), source.shift()]
+                }
+                source.unshift(node);
+                return node;
+            }
+            AdditiveExpression(source);
+            return Expression(source);
+        }
+
+        function AdditiveExpression(source) {
+            if(source[0].type === mulExpStr) {
+                let node = {
+                    type: addExpStr,
+                    children: [source[0]]
+                }
+                source[0] = node;
+                return AdditiveExpression(source);
+            }
+
+            if(source[0].type === addExpStr && source[1] && addExps.includes(source[1].type)) {
+                let node = {
+                    type: addExpStr,
+                    operator: source[1].type,
+                    children: []
+                }
+                node.children.push(source.shift());
+                node.children.push(source.shift());
+                MultiplicativeExpression(source);
+                node.children.push(source.shift());
+                source.unshift(node);
+                return AdditiveExpression(source);
+            }
+            if(source[0].type === addExpStr) {
+                return source[0];
+            }
+            MultiplicativeExpression(source);
+            return AdditiveExpression(source)
+        }
+        
+        
+        for(let token of tokenize("1 + 2 * 3")) {
+            if(token.type !== dictionary[1] && token.type !== dictionary[2])
+            source.push(token)
+        }
+        Expression(source)
+        console.log(source)
+    </script>
+</body>
+</html>
